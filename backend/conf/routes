@@ -1,0 +1,14 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# https://www.playframework.com/documentation/latest/ScalaRouting
+# ~~~~
+
+# An example controller showing a sample home page
+GET /                           controllers.HomeController.hello()
+GET /movies                     controllers.HomeController.movies(category: Option[String])
+GET /recommended/:userId        controllers.HomeController.recommended(userId: Int)
+GET /details/:movieId           controllers.HomeController.details(movieId: Int)
+POST /rate                      controllers.HomeController.rate()
+POST /action                    controllers.HomeController.action()
+POST /register                  controllers.HomeController.register()
+POST /login                     controllers.HomeController.login()
