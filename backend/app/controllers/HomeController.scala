@@ -3,7 +3,7 @@ package controllers
 import javax.inject._
 import play.api._
 import play.api.mvc._
-import slick.jdbc.H2Profile.api._
+import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
@@ -12,14 +12,19 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 @Singleton
 class HomeController @Inject()(val controllerComponents: ControllerComponents) extends BaseController {
-  val db = Database.forConfig("h2mem1")
+  val db = Database.forConfig("postgres")
 
   def hello() = Action { implicit request: Request[AnyContent] =>
     Ok("Hello world");
   }
 
-  def movies(category: Option[String]) = Action { implicit request: Request[AnyContent] =>
-    Ok("filtered movies from category " + category);
+  def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
+    val query = sql"select name from users where name = 'Alex'".as[String]
+    db.run(query).map { users =>
+      Ok(users.mkString(", "))
+    }.recover {
+      case ex: Exception => InternalServerError("An error occurred while retrieving users: " + ex.getMessage)
+    }
   }
 
   def recommended(userId: Int) = Action {implicit request: Request[Any] =>
