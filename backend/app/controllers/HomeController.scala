@@ -5,6 +5,10 @@ import play.api._
 import play.api.mvc._
 import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.ExecutionContext.Implicits.global
+import models.User
+import scala.concurrent.Future
+import play.api.libs.json.Json
+import play.api.mvc.Results._
 
 /**
  * This controller creates an `Action` to handle HTTP requests to the
@@ -19,7 +23,7 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   }
 
   def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
-    val query = sql"select name from users where name = 'Alex'".as[String]
+    val query = sql"select login from users".as[String]
     db.run(query).map { users =>
       Ok(users.mkString(", "))
     }.recover {
@@ -51,8 +55,25 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     Ok("action")
   }
 
-  def login() = Action { implicit request: Request[Any] =>
-    Ok("login")
+  def login() = Action.async(parse.json) { implicit request =>
+    val json = request.body
+    val maybeGivenLogin = (json \ "login").asOpt[String]
+    val maybeGivenPassword = (json \ "password").asOpt[String]
+
+    (maybeGivenLogin, maybeGivenPassword) match {
+      case (Some(givenLogin), Some(givenPassword)) =>
+        val query = sql"select password from users where login = $givenLogin".as[String]
+        db.run(query.headOption).map {
+          case Some(password) if password == givenPassword =>
+            Ok(Json.obj("message" -> "Zalogowano poprawnie"))
+          case _ =>
+            Unauthorized(Json.obj("message" -> "Nieprawidłowy login lub hasło"))
+        }.recover {
+          case ex: Exception => InternalServerError("An error occurred while logging in: " + ex.getMessage)
+        }
+      case _ =>
+        Future.successful(BadRequest(Json.obj("message" -> "Nieprawidłowe dane logowania")))
+    }
   }
 
   def register() = Action { implicit request: Request[Any] =>
