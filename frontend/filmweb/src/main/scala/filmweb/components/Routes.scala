@@ -26,6 +26,9 @@ object Routing {
                         registerForm()
                     )
                 },
+                path("details" / long) { id =>
+                    p(id)
+                },
                 path("recommended") {
                     val userId = window.localStorage.getItem("login")
                     
