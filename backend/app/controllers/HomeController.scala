@@ -104,24 +104,23 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     Ok("action")
   }
 
-  def login() = Action.async(parse.json) { implicit request =>
-    val json = request.body
-    val maybeGivenLogin = (json \ "login").asOpt[String]
-    val maybeGivenPassword = (json \ "password").asOpt[String]
+  def login() = Action.async {implicit request: Request[AnyContent] =>
+    val requestBodyJson = request.body.asJson
+    requestBodyJson.map { json =>
+      val givenLogin = (json \ "login").as[String]
+      val givenPassword = (json \ "password").as[String]
 
-    (maybeGivenLogin, maybeGivenPassword) match {
-      case (Some(givenLogin), Some(givenPassword)) =>
-        val query = sql"select password from users where login = $givenLogin".as[String]
-        db.run(query.headOption).map {
-          case Some(password) if password == givenPassword =>
-            Ok(Json.obj("message" -> "Zalogowano poprawnie"))
-          case _ =>
-            Unauthorized(Json.obj("message" -> "Nieprawidłowy login lub hasło"))
-        }.recover {
-          case ex: Exception => InternalServerError("An error occurred while logging in: " + ex.getMessage)
-        }
-      case _ =>
-        Future.successful(BadRequest(Json.obj("message" -> "Nieprawidłowe dane logowania")))
+      val query = sql"select password from users where login = $givenLogin".as[String]
+
+      db.run(query.headOption).map {
+        case Some(password) if password == givenPassword =>
+          Ok(Json.obj("message" -> "Zalogowano poprawnie"))
+        case _ =>
+          Unauthorized(Json.obj("message" -> "Nieprawidłowy login lub hasło"))
+      }
+
+    }.getOrElse {
+      Future.successful(BadRequest("Expecting application/json request body"))
     }
   }
 
