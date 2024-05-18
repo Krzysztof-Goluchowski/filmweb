@@ -6,15 +6,11 @@ import play.api.mvc._
 import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 import models.User
+import models.Movie
 import scala.concurrent.Future
 import play.api.libs.json.Json
 import play.api.mvc.Results._
 import upickle.default._
-
-case class Movie(movieName: String, averageRating: Double, category: String)
-object Movie {
-  implicit val rw: ReadWriter[Movie] = macroRW
-}
 
 @Singleton
 class HomeController @Inject()(val controllerComponents: ControllerComponents) extends BaseController {
@@ -27,15 +23,15 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
     category match {
       case Some(cat) =>
-        val query = sql"select movie_name, average_rating, category from movies where category = $cat".as[(String, Double, String)]
+        val query = sql"select movie_id, movie_name, average_rating, category from movies where category = $cat".as[(Int, String, Double, String)]
         db.run(query).map { movies =>
-          val movieList = movies.map { case (name, rating, category) => Movie(name, rating, category) }
+          val movieList = movies.map { case (id, name, rating, category) => Movie(id, name, rating, category) }
           Ok(write(movieList))
         }
       case None =>
-        val query = sql"select movie_name, average_rating, category from movies".as[(String, Double, String)]
+        val query = sql"select movie_id, movie_name, average_rating, category from movies".as[(Int, String, Double, String)]
         db.run(query).map { movies =>
-          val movieList = movies.map { case (name, rating, category) => Movie(name, rating, category) }
+          val movieList = movies.map { case (id, name, rating, category) => Movie(id, name, rating, category) }
           Ok(write(movieList))
         }
     }
