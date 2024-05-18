@@ -124,29 +124,26 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     }
   }
 
-  def register() = Action.async(parse.json) { implicit request =>
-    val json = request.body
+  def register() = Action.async {implicit request: Request[AnyContent] =>
+    val requestBodyJson = request.body.asJson
+    requestBodyJson.map { json =>
+      val givenFirstName = (json \ "firstname").as[String]
+      val givenLastName = (json \ "lastname").as[String]
+      val givenLogin = (json \ "login").as[String]
+      val givenPassword = (json \ "password").as[String]
 
-    val maybeGivenFirstName = (json \ "firstname").asOpt[String]
-    val maybeGivenLastnName = (json \ "lastname").asOpt[String]
-    val maybeGivenLogin = (json \ "login").asOpt[String]
-    val maybeGivenPassword = (json \ "password").asOpt[String]
-
-    (maybeGivenFirstName, maybeGivenLastnName, maybeGivenLogin, maybeGivenPassword) match {
-      case (Some(givenFirstName), Some(givenLastName), Some(givenLogin), Some(givenPassword)) =>
-        validateCredentials(givenLogin, givenPassword).flatMap { isValid =>
-          if (!isValid) {
-            Future.successful(BadRequest(Json.obj("message" -> "Nieprawidłowe dane rejestracji (użytkownik już w bazie lub hasło i login nie mają 8 znaków)")))
-          } else {
-            val insertQuery = sql"INSERT INTO users (firstname, lastname, login, password) VALUES ($givenFirstName, $givenLastName, $givenLogin, $givenPassword)".as[Int]
-            db.run(insertQuery).map { _ =>
-              Ok(Json.obj("message" -> "Użytkownik został pomyslnie zarejestronwany, proszę się teraz zalogować"))
-            }
+      validateCredentials(givenLogin, givenPassword).flatMap { isValid =>
+        if (!isValid){
+          Future.successful(BadRequest(Json.obj("message" -> "Registration failed (User is already in the database or login and password do not have a length of 8 characters)")))
+        } else {
+          val insertQuery = sql"INSERT INTO users (firstname, lastname, login, password) VALUES ($givenFirstName, $givenLastName, $givenLogin, $givenPassword)".as[Int]
+          db.run(insertQuery).map { _ =>
+            Ok(Json.obj("message" -> "Użytkownik został pomyslnie zarejestronwany, proszę się teraz zalogować"))
           }
-
         }
-      case _ =>
-        Future.successful(BadRequest(Json.obj("message" -> "Nieprawidłowe dane do rejestracji")))
+      }
+    }.getOrElse {
+      Future.successful(BadRequest(Json.obj("message" -> "Nieprawidłowe dane do rejestracji")))
     }
   }
 
