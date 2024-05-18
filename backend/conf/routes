@@ -5,7 +5,7 @@
 
 # An example controller showing a sample home page
 GET /                           controllers.HomeController.hello()
-GET /movies                     controllers.HomeController.movies(category: Option[String])
+GET /movies                     controllers.HomeController.movies()
 GET /recommended/:userId        controllers.HomeController.recommended(userId: Int)
 GET /details/:movieId           controllers.HomeController.details(movieId: Int)
 POST /rate                      controllers.HomeController.rate()
