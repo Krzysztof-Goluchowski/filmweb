@@ -3,8 +3,16 @@ package registerForm
 import com.raquo.laminar.api.L.{*, given}
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
-import org.scalajs.dom
 import com.raquo.laminar.api.features.unitArrows
+import org.scalajs.dom.console.{log, error}
+import upickle.default._
+import com.raquo.laminar.api.features.unitArrows
+import org.scalajs.dom.window
+import models._
+import icons.Icons._
+import com.raquo.laminar.api.A._
+import org.scalajs.dom.ext.Ajax
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class RegisterState(firstName: String = "", lastName: String = "", login: String = "", password: String = "")
 
@@ -16,13 +24,19 @@ object RegisterForm {
         val loginWriter = registerState.updater[String]((state, login) => state.copy(login = login))
         val passwordWriter = registerState.updater[String]((state, password) => state.copy(password = password))
         val submitter = Observer[RegisterState] { state =>
-            dom.console.log(js.Dynamic.literal(
-                "firstName" -> state.firstName, 
-                "lastName" -> state.lastName, 
-                "login" -> state.login, 
-                "password" -> state.password
-                )
-            )
+            val data = write(Register(state.firstName, state.lastName, state.login, state.password))
+
+            Ajax.post(
+                url = "http://localhost:9000/register",
+                data = data,
+                headers = Map("Content-Type" -> "application/json")
+            ).onComplete { xhr =>
+                if (xhr.isSuccess) {
+                    log(xhr.get.responseText)
+                } else {
+                    error("Failed to create account...:(")
+                }
+            }
         }
 
         div(
