@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L._
 import frontroute._
 import loginForm.LoginForm._
 import registerForm.RegisterForm._
+import details.Details
 import movies.Movies._
 import org.scalajs.dom._
 
@@ -27,10 +28,12 @@ object Routing {
                     )
                 },
                 path("details" / long) { id =>
-                    p(id)
+                    div(
+                        new Details(id).renderDetails()
+                    )
                 },
                 path("recommended") {
-                    val userId = window.localStorage.getItem("login")
+                    val userId = window.localStorage.getItem("userId")
                     
                     div(
                         p(s"Recommended movies for: $userId")
