@@ -13,10 +13,6 @@ object TopBar {
             ul(
                 cls := "navbar-list",
                 li(
-                    cls := "navbar-item", 
-                    a(href := "/", cls := "navbar-link", "Home")
-                ),
-                li(
                     cls := "navbar-item",
                     a(href := "/recommended", cls := "navbar-link", "Recommended")
                 ),
