@@ -52,7 +52,7 @@ object Movies {
               FetchStream.get(url = opt.url)
                 .map(resp => read[Seq[Movie]](resp))
                 .map(resp => resp.filter(movie => categoryVar.now().isEmpty || categoryVar.now().contains(movie.category)))
-                .recover { case err: Throwable => Some(Seq.empty[Movie]) }
+                .recover { case err: Throwable => None }
             }
 
             responses --> { movies =>
@@ -65,7 +65,7 @@ object Movies {
         fontSize.em(0.8),
         br(),
         div(children <-- eventsVar.signal.map(_.map(el => new MovieChip(el).renderMovieChip())))
-      )
+      ),
     )
   }
 }
