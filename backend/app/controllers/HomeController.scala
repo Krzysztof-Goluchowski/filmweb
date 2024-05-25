@@ -23,13 +23,22 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
     category match {
       case Some(cat) =>
-        val query = sql"select movie_id, movie_name, average_rating, category from movies where category = $cat".as[(Int, String, Double, String)]
+        val query = sql"""
+              SELECT movie_id, movie_name, average_rating, category
+              FROM movies
+              WHERE category = $cat
+              """.as[(Int, String, Double, String)]
+
         db.run(query).map { movies =>
           val movieList = movies.map { case (id, name, rating, category) => Movie(id, name, rating, category) }
           Ok(write(movieList))
         }
       case None =>
-        val query = sql"select movie_id, movie_name, average_rating, category from movies".as[(Int, String, Double, String)]
+        val query = sql"""
+               SELECT movie_id, movie_name, average_rating, category
+               FROM movies
+               """.as[(Int, String, Double, String)]
+
         db.run(query).map { movies =>
           val movieList = movies.map { case (id, name, rating, category) => Movie(id, name, rating, category) }
           Ok(write(movieList))
@@ -42,7 +51,11 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   }
 
   def details(movieId: Int) = Action.async { implicit request: Request[AnyContent] =>
-    val query = sql"SELECT movie_id, movie_name, average_rating, category, short_description, long_description FROM movies WHERE movie_id = $movieId".as[(Int, String, Double, String, Option[String], Option[String])]
+    val query =  sql"""
+           SELECT movie_id, movie_name, average_rating, category, short_description, long_description
+           FROM movies
+           WHERE movie_id = $movieId
+           """.as[(Int, String, Double, String, Option[String], Option[String])]
 
     db.run(query).map { movie =>
       movie.headOption match {
@@ -63,11 +76,6 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
       val stars = (json \ "stars").as[Int]
       val review = (json \ "review").as[String]
 
-      println("movieId ": movieId)
-      println("userId ": userId)
-      println("stars ": stars)
-      println("review ": review)
-
       hasAlreadyGivenRating(userId, movieId).flatMap { hasRated =>
         if (!hasRated) {
           postNewRating(movieId, userId, stars, review)
@@ -81,7 +89,11 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   }
 
   def hasAlreadyGivenRating(userId: Int, movieId: Int): Future[Boolean] = {
-    val query = sql"SELECT stars FROM ratings WHERE user_id = $userId AND movie_id = $movieId".as[Double]
+    val query = sql"""
+           SELECT stars
+           FROM ratings
+           WHERE user_id = $userId AND movie_id = $movieId
+           """.as[Double]
     db.run(query.headOption).map {
       case Some(rating) =>
         true
@@ -91,15 +103,26 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   }
 
   def postNewRating(movieId: Int, userId: Int, stars: Double, review: String) = {
-    val query = sql"SELECT average_rating, num_ratings FROM movies WHERE movie_id = $movieId".as[(Double, Int)]
+    val query = sql"""
+           SELECT average_rating, num_ratings
+           FROM movies
+           WHERE movie_id = $movieId
+           """.as[(Double, Int)]
 
     db.run(query.headOption).flatMap {
       case Some(average_rating, num_ratings) =>
         val newNumRatings = num_ratings + 1
         val newRating = ((num_ratings * average_rating) + stars) / newNumRatings
 
-        val updateQuery = sqlu"UPDATE movies SET average_rating = $newRating , num_ratings = $newNumRatings WHERE movie_id = $movieId"
-        val insertReviewQuery = sqlu"INSERT INTO ratings (movie_id, user_id, stars, review) VALUES ($movieId, $userId, $stars, $review)"
+        val updateQuery = sqlu"""
+                UPDATE movies
+                SET average_rating = $newRating , num_ratings = $newNumRatings
+                WHERE movie_id = $movieId
+                """
+        val insertReviewQuery = sqlu"""
+                INSERT INTO ratings (movie_id, user_id, stars, review)
+                VALUES ($movieId, $userId, $stars, $review)
+                """
 
         for {
           _ <- db.run(updateQuery)
@@ -121,7 +144,11 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
       val givenLogin = (json \ "login").as[String]
       val givenPassword = (json \ "password").as[String]
 
-      val query = sql"select password from users where login = $givenLogin".as[String]
+      val query = sql"""
+             SELECT password
+             FROM users
+             WHERE login = $givenLogin
+             """.as[String]
 
       db.run(query.headOption).map {
         case Some(password) if password == givenPassword =>
@@ -146,7 +173,11 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
         if (!isValid){
           Future.successful(BadRequest(Json.obj("message" -> "Registration failed (User is already in the database or login and password do not have a length of 8 characters)")))
         } else {
-          val insertQuery = sql"INSERT INTO users (firstname, lastname, login, password) VALUES ($givenFirstName, $givenLastName, $givenLogin, $givenPassword)".as[Int]
+          val insertQuery = sql"""
+                 INSERT INTO users (firstname, lastname, login, password)
+                 VALUES ($givenFirstName, $givenLastName, $givenLogin, $givenPassword)
+                 """.as[Int]
+
           db.run(insertQuery).map { _ =>
             Ok(Json.obj("message" -> "Użytkownik został pomyslnie zarejestronwany, proszę się teraz zalogować"))
           }
@@ -162,7 +193,12 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     if (!validLength) {
       Future.successful(false)
     } else {
-      val query = sql"SELECT firstname FROM users WHERE login = $login".as[String]
+      val query = sql"""
+             SELECT firstname
+             FROM users
+             WHERE login = $login
+             """.as[String]
+
       db.run(query.headOption).map {
         case Some(_) =>
           false
@@ -171,5 +207,4 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
       }
     }
   }
-
 }
