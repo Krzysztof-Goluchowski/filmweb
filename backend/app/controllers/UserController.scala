@@ -9,81 +9,22 @@ import models.User
 import scala.concurrent.Future
 import play.api.libs.json.Json
 import play.api.mvc.Results._
+import services.UserService
+
 
 @Singleton
-class UserController @Inject()(val controllerComponents: ControllerComponents) extends BaseController {
+class UserController @Inject()(val controllerComponents: ControllerComponents, userService: UserService) extends BaseController {
   val db = Database.forConfig("postgres")
 
-
   def login() = Action.async { implicit request: Request[AnyContent] =>
-    val requestBodyJson = request.body.asJson
-    requestBodyJson.map { json =>
-      val givenLogin = (json \ "login").as[String]
-      val givenPassword = (json \ "password").as[String]
-
-      val query = sql"""
-             SELECT password
-             FROM users
-             WHERE login = $givenLogin
-             """.as[String]
-
-      db.run(query.headOption).map {
-        case Some(password) if password == givenPassword =>
-          Ok(Json.obj("message" -> "Zalogowano poprawnie"))
-        case _ =>
-          Unauthorized(Json.obj("message" -> "Nieprawidłowy login lub hasło"))
-      }
-
-    }.getOrElse {
-      Future.successful(BadRequest("Expecting application/json request body"))
-    }
+    userService.login(request)
   }
 
   def register() = Action.async { implicit request: Request[AnyContent] =>
-    request.body.asJson.map { json =>
-      val givenFirstName = (json \ "firstName").as[String]
-      val givenLastName = (json \ "lastName").as[String]
-      val givenLogin = (json \ "login").as[String]
-      val givenPassword = (json \ "password").as[String]
-
-      validateCredentials(givenLogin, givenPassword).flatMap { isValid =>
-        if (!isValid) {
-          Future.successful(BadRequest(Json.obj("message" -> "Registration failed (User is already in the database or login and password do not have a length of 8 characters)")))
-        } else {
-          val insertQuery = sql"""
-                 INSERT INTO users (firstname, lastname, login, password)
-                 VALUES ($givenFirstName, $givenLastName, $givenLogin, $givenPassword)
-                 """.as[Int]
-
-          db.run(insertQuery).map { _ =>
-            Ok(Json.obj("message" -> "Użytkownik został pomyslnie zarejestronwany, proszę się teraz zalogować"))
-          }
-        }
-      }
-    }.getOrElse {
-      Future.successful(BadRequest(Json.obj("message" -> "Nieprawidłowe dane do rejestracji")))
-    }
+    userService.register(request)
   }
 
-  def validateCredentials(login: String, password: String): Future[Boolean] = {
-    val validLength = login.length >= 8 && password.length >= 8
-    if (!validLength) {
-      Future.successful(false)
-    } else {
-      val query = sql"""
-             SELECT firstname
-             FROM users
-             WHERE login = $login
-             """.as[String]
 
-      db.run(query.headOption).map {
-        case Some(_) =>
-          false
-        case _ =>
-          true
-      }
-    }
-  }
 
   def rate() = Action.async { implicit request: Request[AnyContent] =>
     val requestBodyJson = request.body.asJson

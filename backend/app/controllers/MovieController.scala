@@ -1,26 +1,13 @@
 package controllers
 
-import javax.inject._
-import play.api._
-import play.api.mvc._
-import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.ExecutionContext.Implicits.global
-import models.User
-import models.Movie
-import services.MovieService
-import scala.concurrent.Future
-import play.api.libs.json.Json
-import play.api.mvc.Results._
 import upickle.default._
+import javax.inject._
+import play.api.mvc._
+import services.MovieService
 
 @Singleton
 class MovieController @Inject()(val controllerComponents: ControllerComponents, movieService: MovieService) extends BaseController {
-  val db = Database.forConfig("postgres")
-
-  def hello() = Action { implicit request: Request[AnyContent] =>
-    Ok("Hello World!");
-  }
-
   def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
     category match {
       case Some(cat) =>
@@ -46,5 +33,5 @@ class MovieController @Inject()(val controllerComponents: ControllerComponents, 
       case None => NotFound("Movie not found")
     }
   }
-  
+
 }
