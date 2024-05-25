@@ -41,8 +41,18 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     Ok("recommended");
   }
 
-  def details(movieId: Int) = Action {implicit request: Request[Any] =>
-    Ok("details of movie with id " + movieId);
+  def details(movieId: Int) = Action.async { implicit request: Request[AnyContent] =>
+    val query = sql"SELECT movie_id, movie_name, average_rating, category, short_description, long_description FROM movies WHERE movie_id = $movieId".as[(Int, String, Double, String, Option[String], Option[String])]
+
+    db.run(query).map { movie =>
+      movie.headOption match {
+        case Some(((id, name, rating, category, shortDesc, longDesc))) =>
+          val wantedMovie = Movie(id, name, rating, category, shortDesc, longDesc)
+          Ok(write(wantedMovie))
+        case None =>
+          BadRequest("Movie with given id doesn't exist")
+      }
+    }
   }
 
   def rate() = Action.async {implicit request: Request[AnyContent] =>
@@ -52,6 +62,11 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
       val userId = (json \ "userId").as[Int]
       val stars = (json \ "stars").as[Int]
       val review = (json \ "review").as[String]
+
+      println("movieId ": movieId)
+      println("userId ": userId)
+      println("stars ": stars)
+      println("review ": review)
 
       hasAlreadyGivenRating(userId, movieId).flatMap { hasRated =>
         if (!hasRated) {
@@ -121,10 +136,9 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   }
 
   def register() = Action.async {implicit request: Request[AnyContent] =>
-    val requestBodyJson = request.body.asJson
-    requestBodyJson.map { json =>
-      val givenFirstName = (json \ "firstname").as[String]
-      val givenLastName = (json \ "lastname").as[String]
+      request.body.asJson.map { json =>
+      val givenFirstName = (json \ "firstName").as[String]
+      val givenLastName = (json \ "lastName").as[String]
       val givenLogin = (json \ "login").as[String]
       val givenPassword = (json \ "password").as[String]
 
