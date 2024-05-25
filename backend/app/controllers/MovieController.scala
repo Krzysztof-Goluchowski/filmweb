@@ -7,13 +7,14 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 import models.User
 import models.Movie
+import services.MovieService
 import scala.concurrent.Future
 import play.api.libs.json.Json
 import play.api.mvc.Results._
 import upickle.default._
 
 @Singleton
-class MovieController @Inject()(val controllerComponents: ControllerComponents) extends BaseController {
+class MovieController @Inject()(val controllerComponents: ControllerComponents, movieService: MovieService) extends BaseController {
   val db = Database.forConfig("postgres")
 
   def hello() = Action { implicit request: Request[AnyContent] =>
@@ -23,60 +24,27 @@ class MovieController @Inject()(val controllerComponents: ControllerComponents) 
   def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
     category match {
       case Some(cat) =>
-        val query = sql"""
-              SELECT movie_id, movie_name, average_rating, category, num_ratings
-              FROM movies
-              WHERE category = $cat
-              """.as[(Int, String, Double, String, Int)]
-
-        db.run(query).map { movies =>
-          val movieList = movies.map { case (id, name, rating, category, numRatings) =>
-            Movie(id, name, rating, category, numRatings) }
-          Ok(write(movieList))
+        movieService.getMoviesWithCategory(cat).map { movies =>
+          Ok(write(movies))
         }
       case None =>
-        val query = sql"""
-               SELECT movie_id, movie_name, average_rating, category, num_ratings
-               FROM movies
-               """.as[(Int, String, Double, String, Int)]
-
-        db.run(query).map { movies =>
-          val movieList = movies.map { case (id, name, rating, category, numRatings) =>
-            Movie(id, name, rating, category, numRatings) }
-          Ok(write(movieList))
+        movieService.getMovies.map { movies =>
+          Ok(write(movies))
         }
     }
   }
 
   def recommended(userId: Int) = Action.async { implicit request: Request[AnyContent] =>
-    val query = sql"""
-           SELECT movie_id, movie_name, average_rating, category, num_ratings, short_description, long_description
-           FROM movies
-           LIMIT 10
-           """.as[(Int, String, Double, String, Int, Option[String], Option[String])]
-
-    db.run(query).map { movies =>
-      val movieList = movies.map { case (id, name, rating, category, numRatings, shortDesc, longDesc) =>
-        Movie(id, name, rating, category, numRatings, shortDesc, longDesc) }
-      Ok(write(movieList))
+    movieService.getRecommendedMoviesFor(userId).map { movies =>
+      Ok(write(movies))
     }
   }
 
   def details(movieId: Int) = Action.async { implicit request: Request[AnyContent] =>
-    val query =  sql"""
-           SELECT movie_id, movie_name, average_rating, category, num_ratings, short_description, long_description
-           FROM movies
-           WHERE movie_id = $movieId
-           """.as[(Int, String, Double, String, Int, Option[String], Option[String])]
-
-    db.run(query).map { movie =>
-      movie.headOption match {
-        case Some(((id, name, rating, category, numRatings, shortDesc, longDesc))) =>
-          val wantedMovie = Movie(id, name, rating, category, numRatings, shortDesc, longDesc)
-          Ok(write(wantedMovie))
-        case None =>
-          BadRequest("Movie with given id doesn't exist")
-      }
+    movieService.getDetailsOfMovie(movieId).map {
+      case Some(movie) => Ok(write(movie))
+      case None => NotFound("Movie not found")
     }
   }
+  
 }
