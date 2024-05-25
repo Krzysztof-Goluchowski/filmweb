@@ -46,8 +46,17 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     }
   }
 
-  def recommended(userId: Int) = Action {implicit request: Request[Any] =>
-    Ok("recommended");
+  def recommended(userId: Int) = Action.async { implicit request: Request[AnyContent] =>
+    val query = sql"""
+           SELECT movie_id, movie_name, average_rating, category, short_description, long_description
+           FROM movies
+           LIMIT 10
+           """.as[(Int, String, Double, String, Option[String], Option[String])]
+
+    db.run(query).map { movies =>
+      val movieList = movies.map { case (id, name, rating, category, shortDesc, longDesc) => Movie(id, name, rating, category, shortDesc, longDesc) }
+      Ok(write(movieList))
+    }
   }
 
   def details(movieId: Int) = Action.async { implicit request: Request[AnyContent] =>
