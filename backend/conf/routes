@@ -4,11 +4,14 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET /                           controllers.HomeController.hello()
-GET /movies                     controllers.HomeController.movies(category: Option[String])
-GET /recommended/:userId        controllers.HomeController.recommended(userId: Int)
-GET /details/:movieId           controllers.HomeController.details(movieId: Int)
-POST /rate                      controllers.HomeController.rate()
-POST /action                    controllers.HomeController.action()
-POST /register                  controllers.HomeController.register()
-POST /login                     controllers.HomeController.login()
+
+# Movie actions
+GET /                           controllers.MovieController.hello()
+GET /movies                     controllers.MovieController.movies(category: Option[String])
+GET /recommended/:userId        controllers.MovieController.recommended(userId: Int)
+GET /details/:movieId           controllers.MovieController.details(movieId: Int)
+
+# User actions
+POST /rate                      controllers.UserController.rate()
+POST /register                  controllers.UserController.register()
+POST /login                     controllers.UserController.login()
