@@ -1,22 +1,12 @@
 package services
 
-import javax.inject._
 import repositories.UserRepository
 import repositories.RatingRepository
-import play.api.mvc._
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.libs.json.Json
 import javax.inject._
-import play.api._
 import play.api.mvc._
-import slick.jdbc.PostgresProfile.api._
-import scala.concurrent.ExecutionContext.Implicits.global
-import models.User
-import scala.concurrent.Future
 import play.api.libs.json.Json
 import play.api.mvc.Results._
-import services.UserService
-//import utils.JsonFormats._
 
 @Singleton
 class UserService @Inject()(userRepository: UserRepository, ratingRepository: RatingRepository)(implicit ec: ExecutionContext) {
@@ -67,8 +57,6 @@ class UserService @Inject()(userRepository: UserRepository, ratingRepository: Ra
       val userId = (json \ "userId").as[Int]
       val stars = (json \ "stars").as[Int]
       val review = (json \ "review").as[String]
-
-      println(review)
 
       ratingRepository.hasAlreadyGivenRating(userId, movieId).flatMap { hasRated =>
         if (!hasRated) {

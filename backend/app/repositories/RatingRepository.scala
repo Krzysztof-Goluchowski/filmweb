@@ -35,5 +35,4 @@ class RatingRepository @Inject(movieRepository: MovieRepository)(implicit ec: Ex
     movieRepository.updateMovieRating(movieId, stars)
   }
 
-
 }
