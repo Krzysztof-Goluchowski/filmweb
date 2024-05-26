@@ -20,10 +20,10 @@ class Details (movieId: Long) {
         val stars = Var(4)
         val review = Var("")
         // val userId = window.localStorage.getItem("userId")
-        val userId = 1 // to change later
+        val userId = 8 // to change later
 
         def sendRating(): Unit = {
-            val data = write(Rating(movieId.toInt, userId.toInt, stars.now(), Some(review.now())))
+            val data = write(Rating(movieId.toInt, userId.toInt, stars.now(), review.now()))
 
             Ajax.post(
                 url = "http://localhost:9000/rate",

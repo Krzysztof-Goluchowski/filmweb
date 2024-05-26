@@ -50,4 +50,22 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
     db.run(movies.filter(_.movieId === Id).result.headOption)
   }
 
+  def updateMovieRating(movieId: Int, stars: Int): Future[Int] = {
+    val updateAction = for {
+      maybeMovie <- movies.filter(_.movieId === movieId).result.headOption
+      updated <- maybeMovie.map { movie =>
+        val newNumRatings = movie.numRatings + 1
+        val newRating = ((movie.numRatings * movie.averageRating) + stars) / newNumRatings
+
+        val updateQuery = movies.filter(_.movieId === movieId)
+          .map(m => (m.averageRating, m.numRatings))
+          .update((newRating, newNumRatings))
+
+        updateQuery
+      }.getOrElse(DBIO.successful(0))
+    } yield updated
+
+    db.run(updateAction)
+  }
+
 }

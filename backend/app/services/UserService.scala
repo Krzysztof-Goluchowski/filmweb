@@ -2,6 +2,7 @@ package services
 
 import javax.inject._
 import repositories.UserRepository
+import repositories.RatingRepository
 import play.api.mvc._
 import scala.concurrent.{ExecutionContext, Future}
 import play.api.libs.json.Json
@@ -15,9 +16,10 @@ import scala.concurrent.Future
 import play.api.libs.json.Json
 import play.api.mvc.Results._
 import services.UserService
+//import utils.JsonFormats._
 
 @Singleton
-class UserService @Inject()(userRepository: UserRepository)(implicit ec: ExecutionContext) {
+class UserService @Inject()(userRepository: UserRepository, ratingRepository: RatingRepository)(implicit ec: ExecutionContext) {
 
   def login(request: Request[AnyContent]): Future[Result] = {
     request.body.asJson.map { json =>
@@ -56,6 +58,29 @@ class UserService @Inject()(userRepository: UserRepository)(implicit ec: Executi
       }
     }.getOrElse {
       Future.successful(BadRequest("Oczekiwano ciała żądania w formacie JSON"))
+    }
+  }
+
+  def rate(request: Request[AnyContent]): Future[Result] = {
+    request.body.asJson.map { json =>
+      val movieId = (json \ "movieId").as[Int]
+      val userId = (json \ "userId").as[Int]
+      val stars = (json \ "stars").as[Int]
+      val review = (json \ "review").as[String]
+
+      println(review)
+
+      ratingRepository.hasAlreadyGivenRating(userId, movieId).flatMap { hasRated =>
+        if (!hasRated) {
+          ratingRepository.createRating(movieId, userId, stars, review).map { _ =>
+            Ok(Json.obj("message" -> "Rating created successfully"))
+          }
+        } else {
+          Future.successful(BadRequest(Json.obj("message" -> "This user already rated this film.")))
+        }
+      }
+    }.getOrElse {
+      Future.successful(BadRequest("Expecting application/json request body"))
     }
   }
 
