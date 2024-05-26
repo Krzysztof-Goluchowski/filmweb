@@ -35,4 +35,7 @@ class RatingRepository @Inject(movieRepository: MovieRepository)(implicit ec: Ex
     movieRepository.updateMovieRating(movieId, stars)
   }
 
+  def getHighRatedMoviesByUserId(userId: Int): Future[Seq[Rating]] = {
+    db.run(ratings.filter(r => r.userId === userId && r.stars >= 4).result)
+  }
 }

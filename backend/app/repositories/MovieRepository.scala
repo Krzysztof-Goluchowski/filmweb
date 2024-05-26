@@ -68,4 +68,25 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
     db.run(updateAction)
   }
 
+  def findCategoryByMovieId(Id: Int): Future[Option[String]] = {
+    val query = movies.filter(_.movieId === Id).map(_.category).result.headOption
+    db.run(query)
+  }
+
+  def findMoviesByCategory(category: String, numMoviesToSelect: Int): Future[Seq[Movie]] = {
+    val query = sql"""
+                     SELECT movie_id, movie_name, average_rating, category, num_ratings, short_description, long_description
+                     FROM movies
+                     WHERE category = $category
+                     ORDER BY RANDOM()
+                     LIMIT $numMoviesToSelect
+                     """.as[(Int, String, Double, String, Int, Option[String], Option[String])]
+
+    db.run(query).map { movies =>
+      movies.map { case (id, name, rating, category, numRatings, shortDesc, longDesc) =>
+        Movie(id, name, rating, category, numRatings, shortDesc, longDesc)
+      }
+    }
+  }
+
 }
