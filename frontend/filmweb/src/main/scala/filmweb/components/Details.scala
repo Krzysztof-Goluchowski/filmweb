@@ -23,7 +23,7 @@ class Details (movieId: Long) {
         val userId = 1 // to change later
 
         def sendRating(): Unit = {
-            val data = write(Rating(movieId.toInt, userId.toInt, stars.now(), Some(review.now())))
+            val data = write(Rating(movieId.toInt, userId.toInt, stars.now(), review.now()))
 
             Ajax.post(
                 url = "http://localhost:9000/rate",

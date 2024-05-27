@@ -11,5 +11,7 @@ libraryDependencies += guice
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test
 libraryDependencies += "org.postgresql" % "postgresql" % "42.7.3"
 libraryDependencies += "com.typesafe.slick" %% "slick" % "3.5.0"
+libraryDependencies += "com.typesafe.slick" %% "slick-hikaricp" % "3.5.0"
+//libraryDependencies += "com.typesafe.play" %% "play-slick" % "5.1.0"
 libraryDependencies += "com.lihaoyi" %% "upickle" % "3.2.0"
 libraryDependencies += filters
