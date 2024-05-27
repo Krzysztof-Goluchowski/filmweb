@@ -8,6 +8,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.mutable.Map
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Random
 
 @Singleton
 class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository: RatingRepository)(implicit ec: ExecutionContext) {
@@ -22,11 +23,12 @@ class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository:
 
 
   def getRecommendedMoviesFor(userId: Int): Future[Seq[Movie]] = {
-    val highRatedMovies = ratingRepository.getHighRatedMoviesByUserId(userId)
+    val highRatedMoviesFuture = ratingRepository.findHighRatedMoviesByUserId(userId)
     val categoryCounts = scala.collection.mutable.Map.empty[String, Int]
-    var totalRatings = 0
 
-    highRatedMovies.flatMap { ratings =>
+    highRatedMoviesFuture.flatMap { ratings =>
+      val ratedMovieIds = ratings.map(_.movieId)
+
       val categoryFutures = ratings.map { rating =>
         movieRepository.findCategoryByMovieId(rating.movieId)
       }
@@ -38,23 +40,29 @@ class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository:
           categoryCounts.update(category, currentCount + 1)
         }
 
-        totalRatings = ratings.size
+        val totalRatings = ratings.size
 
-        movieRepository.findRecommendedMoviesFor(userId).flatMap { movies =>
-          categoryCounts.foreach { case (category, count) =>
-            println(s"$category: $count")
+        val recommendedMoviesFutures = Future.sequence {
+          categoryCounts.toSeq.flatMap { case (category, count) =>
+            val numMoviesToSelect = ((count.toDouble / totalRatings) * 10).toInt
+            val futureMovies = movieRepository.findMoviesByCategory(category, numMoviesToSelect, ratedMovieIds)
+            Seq(futureMovies)
           }
-          println(s"Łącznie ocen użytkownika: $totalRatings")
+        }
 
-          val recommendedMoviesFutures = Future.sequence {
-            categoryCounts.toSeq.flatMap { case (category, count) =>
-              val numMoviesToSelect = ((count.toDouble / totalRatings) * 10).toInt
-              val futureMovies = movieRepository.findMoviesByCategory(category, numMoviesToSelect)
-              Seq(futureMovies)
+        recommendedMoviesFutures.flatMap { movies =>
+          val flattenedMovies = movies.flatten
+          val flattenedMovieIds = flattenedMovies.map(_.movieId)
+          val numberOfMovies = flattenedMovies.size
+
+          if (numberOfMovies < 10) {
+            val additionalMoviesNeeded = 10 - numberOfMovies
+            movieRepository.findRandomMovies(additionalMoviesNeeded, ratedMovieIds ++ flattenedMovieIds).map { randomMovies =>
+              Random.shuffle(flattenedMovies ++ randomMovies)
             }
+          } else {
+            Future.successful(Random.shuffle(flattenedMovies))
           }
-
-          recommendedMoviesFutures.map(_.flatten)
         }
       }
     }

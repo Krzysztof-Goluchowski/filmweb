@@ -4,6 +4,7 @@ import javax.inject._
 import models.Movie
 import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 @Singleton
 class MovieRepository @Inject()(implicit ec: ExecutionContext) {
@@ -29,21 +30,6 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
 
   def findAllMovies(): Future[Seq[Movie]] = {
     db.run(movies.result)
-  }
-
-  def findRecommendedMoviesFor(userId: Int): Future[Seq[Movie]] = {
-    val query = sql"""
-                     SELECT movie_id, movie_name, average_rating, category, num_ratings, short_description, long_description
-                     FROM movies
-                     ORDER BY RANDOM()
-                     LIMIT 10
-                     """.as[(Int, String, Double, String, Int, Option[String], Option[String])]
-
-    db.run(query).map { movies =>
-      movies.map { case (id, name, rating, category, numRatings, shortDesc, longDesc) =>
-        Movie(id, name, rating, category, numRatings, shortDesc, longDesc)
-      }
-    }
   }
 
   def findMovieById(Id: Int): Future[Option[Movie]] = {
@@ -73,11 +59,12 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
     db.run(query)
   }
 
-  def findMoviesByCategory(category: String, numMoviesToSelect: Int): Future[Seq[Movie]] = {
+  def findMoviesByCategory(category: String, numMoviesToSelect: Int, ratedMovieIds: Seq[Int]): Future[Seq[Movie]] = {
+    val idsList = ratedMovieIds.mkString(",")
     val query = sql"""
                      SELECT movie_id, movie_name, average_rating, category, num_ratings, short_description, long_description
                      FROM movies
-                     WHERE category = $category
+                     WHERE category = $category AND movie_id NOT IN (#$idsList)
                      ORDER BY RANDOM()
                      LIMIT $numMoviesToSelect
                      """.as[(Int, String, Double, String, Int, Option[String], Option[String])]
@@ -87,6 +74,16 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
         Movie(id, name, rating, category, numRatings, shortDesc, longDesc)
       }
     }
+  }
+
+  def findRandomMovies(numberOfMovies: Int, excludeMovieIds: Seq[Int]): Future[Seq[Movie]] = {
+    val randomFunc = SimpleFunction.nullary[Double]("RANDOM")
+    val query = if (excludeMovieIds.nonEmpty) {
+      movies.filter(movie => !movie.movieId.inSet(excludeMovieIds)).sortBy(_ => randomFunc).take(numberOfMovies)
+    } else {
+      movies.sortBy(_ => randomFunc).take(numberOfMovies)
+    }
+    db.run(query.result)
   }
 
 }
