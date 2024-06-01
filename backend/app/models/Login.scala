@@ -1,6 +1,9 @@
 package models
 
-import upickle.default.{ReadWriter}
+import play.api.libs.json.{Json, OFormat}
 
 case class Login(login: String, password: String)
-    derives ReadWriter
+
+object Login {
+  implicit val format: OFormat[Login] = Json.format[Login]
+}

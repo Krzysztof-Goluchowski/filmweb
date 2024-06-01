@@ -4,7 +4,6 @@ import javax.inject._
 import models.Movie
 import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.Future
 
 @Singleton
 class MovieRepository @Inject()(implicit ec: ExecutionContext) {
@@ -51,7 +50,7 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
       }.getOrElse(DBIO.successful(0))
     } yield updated
 
-    db.run(updateAction)
+    db.run(updateAction.transactionally)
   }
 
   def findCategoryByMovieId(Id: Int): Future[Option[String]] = {
@@ -60,20 +59,11 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
   }
 
   def findMoviesByCategory(category: String, numMoviesToSelect: Int, ratedMovieIds: Seq[Int]): Future[Seq[Movie]] = {
-    val idsList = ratedMovieIds.mkString(",")
-    val query = sql"""
-                     SELECT movie_id, movie_name, average_rating, category, num_ratings, short_description, long_description
-                     FROM movies
-                     WHERE category = $category AND movie_id NOT IN (#$idsList)
-                     ORDER BY RANDOM()
-                     LIMIT $numMoviesToSelect
-                     """.as[(Int, String, Double, String, Int, Option[String], Option[String])]
+    val query = movies.filter(m => m.category === category && !m.movieId.inSet(ratedMovieIds))
+      .sortBy(_ => SimpleFunction.nullary[Double]("RANDOM"))
+      .take(numMoviesToSelect)
 
-    db.run(query).map { movies =>
-      movies.map { case (id, name, rating, category, numRatings, shortDesc, longDesc) =>
-        Movie(id, name, rating, category, numRatings, shortDesc, longDesc)
-      }
-    }
+    db.run(query.result)
   }
 
   def findRandomMovies(numberOfMovies: Int, excludeMovieIds: Seq[Int]): Future[Seq[Movie]] = {

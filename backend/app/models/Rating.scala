@@ -1,6 +1,9 @@
 package models
 
-import upickle.default.{ReadWriter}
+import play.api.libs.json.{Json, OFormat}
 
 case class Rating(movieId: Int, userId: Int, stars: Int, review: String)
-    derives ReadWriter
+
+object Rating {
+  implicit val format: OFormat[Rating] = Json.format[Rating]
+}

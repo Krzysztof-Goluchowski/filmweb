@@ -30,14 +30,10 @@ class UserRepository @Inject()(implicit ec: ExecutionContext) {
   }
 
   def validateCredentials(login: String, password: String): Future[Boolean] = {
-    val validLength = login.length >= 8 && password.length >= 8
-    if (!validLength) {
+    if (login.length < 8 || password.length < 8) {
       Future.successful(false)
     } else {
-      findPasswordByLogin(login).map {
-        case Some(_) => false
-        case None => true
-      }
+      findPasswordByLogin(login).map(_.isEmpty)
     }
   }
 

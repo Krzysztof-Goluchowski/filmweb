@@ -4,14 +4,13 @@ import javax.inject._
 import repositories.MovieRepository
 import repositories.RatingRepository
 import models.Movie
-import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.mutable.Map
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
 @Singleton
-class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository: RatingRepository)(implicit ec: ExecutionContext) {
+class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository: RatingRepository) {
 
   def getMoviesWithCategory(category: String): Future[Seq[Movie]] = {
     movieRepository.findMoviesWithCategory(category)
@@ -21,53 +20,53 @@ class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository:
     movieRepository.findAllMovies()
   }
 
-
   def getRecommendedMoviesFor(userId: Int): Future[Seq[Movie]] = {
-    val highRatedMoviesFuture = ratingRepository.findHighRatedMoviesByUserId(userId)
-    val categoryCounts = scala.collection.mutable.Map.empty[String, Int]
-
-    highRatedMoviesFuture.flatMap { ratings =>
-      val ratedMovieIds = ratings.map(_.movieId)
-
-      val categoryFutures = ratings.map { rating =>
-        movieRepository.findCategoryByMovieId(rating.movieId)
-      }
-
-      val allCategoriesFuture = Future.sequence(categoryFutures)
-      allCategoriesFuture.flatMap { categories =>
-        categories.flatten.foreach { category =>
-          val currentCount = categoryCounts.getOrElse(category, 0)
-          categoryCounts.update(category, currentCount + 1)
-        }
-
-        val totalRatings = ratings.size
-
-        val recommendedMoviesFutures = Future.sequence {
-          categoryCounts.toSeq.flatMap { case (category, count) =>
-            val numMoviesToSelect = ((count.toDouble / totalRatings) * 10).toInt
-            val futureMovies = movieRepository.findMoviesByCategory(category, numMoviesToSelect, ratedMovieIds)
-            Seq(futureMovies)
-          }
-        }
-
-        recommendedMoviesFutures.flatMap { movies =>
-          val flattenedMovies = movies.flatten
-          val flattenedMovieIds = flattenedMovies.map(_.movieId)
-          val numberOfMovies = flattenedMovies.size
-
-          if (numberOfMovies < 10) {
-            val additionalMoviesNeeded = 10 - numberOfMovies
-            movieRepository.findRandomMovies(additionalMoviesNeeded, ratedMovieIds ++ flattenedMovieIds).map { randomMovies =>
-              Random.shuffle(flattenedMovies ++ randomMovies)
-            }
-          } else {
-            Future.successful(Random.shuffle(flattenedMovies))
-          }
-        }
-      }
-    }
+    for {
+      highRatedMovies <- ratingRepository.findHighRatedMoviesByUserId(userId)
+      categories <- getCategoriesForMovies(highRatedMovies.map(_.movieId))
+      categoryCounts = countMoviesByCategory(categories)
+      recommendedMovies <- getRecommendedMoviesByCategory(categoryCounts, highRatedMovies.map(_.movieId))
+      finalMovies <- ensureMinimumMovies(recommendedMovies, highRatedMovies.map(_.movieId), 10)
+    } yield finalMovies
   }
 
+  private def getCategoriesForMovies(movieIds: Seq[Int]): Future[Seq[String]] = {
+    val categoryFutures = movieIds.map(movieRepository.findCategoryByMovieId)
+    Future.sequence(categoryFutures).map(_.flatten)
+  }
+
+  private def countMoviesByCategory(categories: Seq[String]): Map[String, Int] = {
+    val categoryCounts = Map.empty[String, Int]
+    categories.foreach { category =>
+      val currentCount = categoryCounts.getOrElse(category, 0)
+      categoryCounts.update(category, currentCount + 1)
+    }
+    categoryCounts
+  }
+
+  private def getRecommendedMoviesByCategory(categoryCounts: Map[String, Int], ratedMovieIds: Seq[Int]): Future[Seq[Movie]] = {
+    val totalRatings = ratedMovieIds.size
+    val recommendedMoviesFutures = Future.sequence {
+      categoryCounts.toSeq.flatMap { case (category, count) =>
+        val numMoviesToSelect = ((count.toDouble / totalRatings) * 10).toInt
+        val futureMovies = movieRepository.findMoviesByCategory(category, numMoviesToSelect, ratedMovieIds)
+        Seq(futureMovies)
+      }
+    }
+    recommendedMoviesFutures.map(_.flatten)
+  }
+
+  private def ensureMinimumMovies(movies: Seq[Movie], ratedMovieIds: Seq[Int], minimum: Int): Future[Seq[Movie]] = {
+    val numberOfMovies = movies.size
+    if (numberOfMovies < minimum) {
+      val additionalMoviesNeeded = minimum - numberOfMovies
+      movieRepository.findRandomMovies(additionalMoviesNeeded, ratedMovieIds ++ movies.map(_.movieId)).map { randomMovies =>
+        Random.shuffle(movies ++ randomMovies)
+      }
+    } else {
+      Future.successful(Random.shuffle(movies))
+    }
+  }
 
   def getDetailsOfMovie(movieId: Int): Future[Option[Movie]] = {
     movieRepository.findMovieById(movieId)
