@@ -25,8 +25,8 @@ class UserRepository @Inject()(implicit ec: ExecutionContext) {
 
   private val users = TableQuery[UsersTable]
 
-  def findPasswordByLogin(login: String): Future[Option[String]] = {
-    db.run(users.filter(_.login === login).map(_.password).result.headOption)
+  def findPasswordByLogin(login: String): Future[Option[User]] = {
+    db.run(users.filter(_.login === login).result.headOption)
   }
 
   def validateCredentials(login: String, password: String): Future[Boolean] = {

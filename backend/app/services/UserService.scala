@@ -6,7 +6,7 @@ import javax.inject._
 import play.api.mvc._
 import play.api.libs.json._
 import play.api.mvc.Results._
-import models.{Login, Rating, UserRegistration}
+import models.{Login, Rating, UserRegistration, User}
 
 @Singleton
 class UserService @Inject()(userRepository: UserRepository, ratingRepository: RatingRepository)(implicit ec: ExecutionContext) {
@@ -14,8 +14,8 @@ class UserService @Inject()(userRepository: UserRepository, ratingRepository: Ra
   def login(request: Request[AnyContent]): Future[Result] = {
     parseJson[Login](request) { login =>
       userRepository.findPasswordByLogin(login.login).map {
-        case Some(password) if password == login.password =>
-          Ok(Json.obj("message" -> "You have logged in successfully"))
+        case Some(user) if user.password == login.password =>
+          Ok(Json.obj("userId" -> user.userId))
         case _ =>
           Unauthorized(Json.obj("message" -> "Wrong login or password"))
       }
