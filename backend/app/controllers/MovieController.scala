@@ -8,7 +8,7 @@ import services.MovieService
 
 @Singleton
 class MovieController @Inject()(val controllerComponents: ControllerComponents, movieService: MovieService) extends BaseController {
-  def movies(category: Option[String]) = Action.async { implicit request: Request[AnyContent] =>
+  def movies(category: Option[String]) = Action.async {
     category match {
       case Some(cat) =>
         movieService.getMoviesWithCategory(cat).map { movies =>
@@ -21,13 +21,13 @@ class MovieController @Inject()(val controllerComponents: ControllerComponents, 
     }
   }
 
-  def recommended(userId: Int) = Action.async { implicit request: Request[AnyContent] =>
+  def recommended(userId: Int) = Action.async {
     movieService.getRecommendedMoviesFor(userId).map { movies =>
       Ok(write(movies))
     }
   }
 
-  def details(movieId: Int) = Action.async { implicit request: Request[AnyContent] =>
+  def details(movieId: Int) = Action.async {
     movieService.getDetailsOfMovie(movieId).map {
       case Some(movie) => Ok(write(movie))
       case None => NotFound("Movie not found")
