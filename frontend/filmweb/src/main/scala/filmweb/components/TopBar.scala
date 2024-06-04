@@ -1,4 +1,4 @@
-package topbar
+package components
 
 import com.raquo.laminar.api.L.{*, given}
 import scala.scalajs.js
