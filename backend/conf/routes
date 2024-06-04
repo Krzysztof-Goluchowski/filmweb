@@ -6,6 +6,7 @@
 # An example controller showing a sample home page
 
 # Movie actions
+GET /categories                 controllers.MovieController.categories()
 GET /movies                     controllers.MovieController.movies(category: Option[String])
 GET /recommended/:userId        controllers.MovieController.recommended(userId: Int)
 GET /details/:movieId           controllers.MovieController.details(movieId: Int)

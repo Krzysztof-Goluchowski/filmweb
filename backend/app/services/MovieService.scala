@@ -12,6 +12,10 @@ import scala.util.Random
 @Singleton
 class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository: RatingRepository) {
 
+  def getCategories(): Future[Seq[String]] = {
+    movieRepository.findCategories()
+  }
+
   def getMoviesWithCategory(category: String): Future[Seq[Movie]] = {
     movieRepository.findMoviesWithCategory(category)
   }

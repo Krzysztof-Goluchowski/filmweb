@@ -16,7 +16,7 @@ import com.raquo.airstream.core.EventStream._
 import components.implicits.{rw, owner}
 
 object RatingForm {
-    def sendRating(movieId: Long, stars: Int, review: Option[String]): Unit = {
+    def sendRating(movieId: Long, stars: Int, review: String): Unit = {
         val userId = localStorage.getItem("userId")
 
         if (userId != null && !userId.isEmpty){
@@ -43,7 +43,7 @@ object RatingForm {
 
     def renderRatingForm(movieId: Long): Element = {    
         val starsVar = Var(4)
-        val reviewVar = Var(Option.empty[String])
+        val reviewVar = Var("")
 
         div(
             p(movieId),
@@ -61,8 +61,8 @@ object RatingForm {
                 rows := 5,
                 placeholder("I think it is really great movie!"),
                 controlled(
-                    value <-- reviewVar.signal.map(_.getOrElse("")),
-                    onInput.mapToValue.map(value => if (value == "") None else Some(value)) --> reviewVar,
+                    value <-- reviewVar.signal,
+                    onInput.mapToValue --> reviewVar,
                 )
             ),
             button(
