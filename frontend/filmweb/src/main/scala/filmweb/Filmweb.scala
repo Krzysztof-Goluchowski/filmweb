@@ -5,10 +5,8 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import org.scalajs.dom
 import com.raquo.laminar.api.features.unitArrows
-import loginForm.LoginForm._
-import registerForm.RegisterForm._
-import topbar.TopBar._
-import routingPackage.Routing._
+import components.TopBar._
+import routing.Routing._
 import frontroute.*
 
 @main

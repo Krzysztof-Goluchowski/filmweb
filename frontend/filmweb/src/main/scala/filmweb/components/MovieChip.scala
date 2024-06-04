@@ -1,12 +1,12 @@
-package movieChip
+package components
 
 import com.raquo.laminar.api.L.{*, given}
-import models.Movie
+import models.movies.{MovieDetails}
 import org.scalajs.dom.console.log
 import org.scalajs.dom.window._
 import icons.Icons._
 
-class MovieChip(movie: Movie) {
+object MovieChip {
     def renderStars(rating: Double): Element = {
         val intPart: Integer = rating.toInt
         val decimalPart: Double = rating - rating.toInt
@@ -18,7 +18,7 @@ class MovieChip(movie: Movie) {
         )
     }
 
-    def renderMovieChip(): Element = {
+    def renderMovieChip(movie: MovieDetails): Element = {
         div(
             cls := "movie-chip",
             div(
