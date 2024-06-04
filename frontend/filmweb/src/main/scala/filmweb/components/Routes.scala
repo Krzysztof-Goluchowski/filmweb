@@ -1,16 +1,17 @@
-package routingPackage
+package routing
 
 import com.raquo.laminar.api.L._
 import frontroute._
-import loginForm.LoginForm._
-import registerForm.RegisterForm._
-import details.Details
-import movies.Movies._
-import org.scalajs.dom._
+import components.RegisterForm._
+import components.Movies._
+import components.Details._
+import components.LoginForm._
+import org.scalajs.dom.window.{alert, localStorage}
+import org.scalajs.dom.console.{log}
 
 
 object Routing {
-    def routing() = 
+    def routing() = {
         routes(
             div(
                 cls := "p-4 min-h-[300px]",
@@ -29,19 +30,34 @@ object Routing {
                 },
                 path("details" / long) { id =>
                     div(
-                        new Details(id).renderDetails()
+                       renderDetails(id)
                     )
                 },
                 path("recommended") {
-                    val userId = window.localStorage.getItem("userId")
-                    
-                    div(
-                        p(s"Recommended movies for: $userId")
-                    )
+                    val userId = localStorage.getItem("userId")
+
+                    if (userId != null && !userId.isEmpty){
+                        div(
+                            h2(
+                                s"Recommended movies for user ${userId}"
+                            ),
+                            renderMovies(s"http://localhost:9000/recommended/${userId}")
+                        )                    
+                    } else {
+                        div(
+                            h2(
+                                "All movies (log in to see recommended movies)"
+                            ),
+                            renderMovies("http://localhost:9000/movies")
+                        )
+                    }
                 },
                 path("movies") {
                     div(
-                        movies()
+                        h2(
+                            "All movies"
+                        ),
+                        renderMovies("http://localhost:9000/movies")
                     )
                 },
                 (noneMatched & extractUnmatchedPath) { unmatched =>
@@ -52,4 +68,5 @@ object Routing {
                 }
             )
         )
+    }
 }
