@@ -1,68 +1,41 @@
-package details
+package components
 
 import com.raquo.laminar.api.L.{*, given}
-import org.scalajs.dom.console.{log, error}
+import org.scalajs.dom.console.{log}
+import org.scalajs.dom.window.{alert}
 import scala.scalajs.js
 import upickle.default._
 import com.raquo.laminar.api.features.unitArrows
-import org.scalajs.dom.window
-import models._
+import models.movies._
+import models.responses._
 import icons.Icons._
-import org.scalajs.dom.ext.Ajax
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.api.A._
-import org.scalajs.dom.ext.Ajax
 import scala.concurrent.ExecutionContext.Implicits.global
+import components.RatingForm._
+import io.laminext.fetch.upickle._
+import components.implicits.{rw, owner}
 
+object Details {
+    val movieDetailsVar = Var(Option.empty[MovieDetails])
 
-class Details (movieId: Long) {
-    def renderRatingForm(): Element = {
-        val stars = Var(4)
-        val review = Var("")
-        // val userId = window.localStorage.getItem("userId")
-        val userId = 1 // to change later
-
-        def sendRating(): Unit = {
-            val data = write(Rating(movieId.toInt, userId.toInt, stars.now(), Some(review.now())))
-
-            Ajax.post(
-                url = "http://localhost:9000/rate",
-                data = data,
-                headers = Map("Content-Type" -> "application/json")
-            ).onComplete { xhr =>
-                if (xhr.isSuccess) {
-                    log("Rating submitted successfully")
-                } else {
-                    error("Failed to submit rating")
+    def fetchMovieDetails(movieId: Long): Unit = {
+        Fetch.get(
+            url = s"http://localhost:9000/details/${movieId}"
+        ).decodeEither[ErrorResponse, MovieDetails]
+        .foreach { 
+            response => {
+                response.data match {
+                    case Left(error) => {
+                        alert(error.message)
+                    }
+                    case Right(details) => {
+                        log(details.toString())
+                        movieDetailsVar.set(Some(details))
+                    }
                 }
             }
         }
-
-        div(
-            p(movieId),
-            p("Have you watched the movie? Let us know what do you think about it!"),
-            (1 to 5).map(i => {
-                a(
-                    onClick --> stars.set(i),
-                    child <-- stars.signal.map(curr => {
-                        if (i <= stars.signal.now()) filledStar() else emptyStar()
-                    })
-                )
-            }),
-            textArea(
-                width := "100%",
-                rows := 5,
-                placeholder("I think it is really great movie!"),
-                controlled(
-                    value <-- review,
-                    onInput.mapToValue --> review
-                )
-            ),
-            button(
-                "Send",
-                onClick.preventDefault.mapTo(()) --> { _ => sendRating() }
-            )
-        )
     }
 
     def renderStars(rating: Double): Element = {
@@ -71,12 +44,12 @@ class Details (movieId: Long) {
 
         div(
             (1 to intPart).map(el => filledStar()),
-            {if (decimalPart > 0) Some(halfStar()) else p()},
+            {if (decimalPart > 0) halfStar() else p()},
             (1 to (5 - intPart - (if (decimalPart > 0) 1 else 0))).map(el => emptyStar())
         )
     }
 
-    def renderInfo(movie: Movie): Element = {
+    def renderInfo(movie: MovieDetails): Element = {
         div(
             div(
                 cls := "details-title-category-rating",
@@ -99,25 +72,15 @@ class Details (movieId: Long) {
             ),
             h4(cls := "short-description", movie.shortDescription),
             p(cls := "long-description", movie.longDescription),
-            renderRatingForm()
+            renderRatingForm(movie.movieId)
         )
     }
 
-    def renderDetails(): Element = { 
-        val movieDetailsVar = Var(Option.empty[Movie])
+    def renderDetails(movieId: Long): Element = { 
+        fetchMovieDetails(movieId)
 
         form(
-            cls := "movie-details",
-            inContext { thisNode => 
-                val responses = FetchStream.get(url = s"http://localhost:9000/details/${movieId}")
-                    .map(resp => read[Movie](resp))
-                    .recover {case err: java.lang.Throwable => Option.empty[Movie]}
-                
-                responses --> { maybeMovie =>
-                    movieDetailsVar.set(Some(maybeMovie))
-                }
-            },
-            cls := "card",
+            cls := "movie-details card",
             img(cls := "card-image", src := "../../../../image.jpg", width := "100%"),
             div(
                 fontSize.em(0.8),
