@@ -22,6 +22,7 @@ lazy val filmweb = project.in(file("."))
     libraryDependencies += "io.laminext" %%% "fetch" % "0.16.2",
     libraryDependencies += "org.scala-js" %%% "scala-js-macrotask-executor" % "1.1.1",
     libraryDependencies += "com.lihaoyi" %%% "upickle" % "3.3.0",
-    libraryDependencies += "org.scala-lang" %% "toolkit" % "0.1.7"
+    libraryDependencies += "org.scala-lang" %% "toolkit" % "0.1.7",
+    libraryDependencies += "io.laminext" %%% "fetch-upickle" % "0.16.2"
   )
   
