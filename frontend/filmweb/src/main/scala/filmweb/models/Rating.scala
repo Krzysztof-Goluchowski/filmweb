@@ -1,4 +1,4 @@
-package models
+package models.rating
 
 import upickle.default.{ReadWriter}
 
