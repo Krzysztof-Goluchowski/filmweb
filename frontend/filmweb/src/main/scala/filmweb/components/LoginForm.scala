@@ -38,7 +38,7 @@ object LoginForm {
                         alert(error.message)
                     }
                     case Right(success) => {
-                        alert(s"Successully registered user ${success.userId.toString()}")
+                        alert(s"Successully logged in user ${success.userId.toString()}")
                         localStorage.setItem("userId", success.userId.toString())
                     }
                 }

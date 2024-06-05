@@ -28,17 +28,19 @@ object RegisterForm {
         val submitter = Observer[RegisterState] { state =>
             val data = write(Register(state.firstName, state.lastName, state.login, state.password))
 
+            log(data)
+
             Fetch.post(
                 url = "http://localhost:9000/register",
                 body = data
-            ).decodeEither[ErrorResponse, LoginResponse]
+            ).decodeEither[ErrorResponse, SuccessResponse]
             .foreach { response =>
                 response.data match {
                     case Left(error) => {
                         alert(error.message)
                     }
                     case Right(success) => {
-                        alert(s"Successully registered user ${success.userId.toString()}")
+                        alert(success.message)
                     }
                 }
             }

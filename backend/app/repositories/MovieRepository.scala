@@ -23,6 +23,10 @@ class MovieRepository @Inject()(implicit ec: ExecutionContext) {
 
   private val movies = TableQuery[MovieTable]
 
+  def findCategories(): Future[Seq[String]] = {
+    db.run(movies.map(_.category).distinct.result)
+  }
+
   def findMoviesWithCategory(category: String): Future[Seq[Movie]] = {
     db.run(movies.filter(_.category === category).result)
   }

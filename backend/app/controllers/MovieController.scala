@@ -8,6 +8,13 @@ import services.MovieService
 
 @Singleton
 class MovieController @Inject()(val controllerComponents: ControllerComponents, movieService: MovieService) extends BaseController {
+
+  def categories() = Action.async {
+    movieService.getCategories().map { categories =>
+      Ok(write(categories))
+    }
+  }
+
   def movies(category: Option[String]) = Action.async {
     category match {
       case Some(cat) =>
