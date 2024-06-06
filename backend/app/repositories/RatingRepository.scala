@@ -24,6 +24,10 @@ class RatingRepository @Inject(movieRepository: MovieRepository)(implicit ec: Ex
 
   private val ratings = TableQuery[RatingsTable]
 
+  def findRatings(userId: Int): Future[Seq[Rating]] = {
+    db.run(ratings.filter(r => r.userId === userId).result)
+  }
+
   def hasAlreadyGivenRating(userId: Int, movieId: Int): Future[Boolean] = {
     val query = ratings.filter(r => r.userId === userId && r.movieId === movieId).exists.result
     db.run(query)

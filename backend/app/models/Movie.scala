@@ -13,16 +13,16 @@ case class Movie(
                   longDescription: Option[String] = None
                 ) derives ReadWriter
 
-object Movie {
-  implicit val getMovieResult: GetResult[Movie] = GetResult(r =>
-    Movie(
-      r.<<, // movieId
-      r.<<, // movieName
-      r.<<, // averageRating
-      r.<<, // category
-      r.<<, // numRatings
-      r.<<?[String], // shortDescription
-      r.<<?[String] // longDescription
-    )
-  )
-}
+//object Movie {
+//  implicit val getMovieResult: GetResult[Movie] = GetResult(r =>
+//    Movie(
+//      r.<<, // movieId
+//      r.<<, // movieName
+//      r.<<, // averageRating
+//      r.<<, // category
+//      r.<<, // numRatings
+//      r.<<?[String], // shortDescription
+//      r.<<?[String] // longDescription
+//    )
+//  )
+//}

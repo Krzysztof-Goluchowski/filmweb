@@ -26,11 +26,12 @@ class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository:
 
   def getRecommendedMoviesFor(userId: Int): Future[Seq[Movie]] = {
     for {
+      ratedMovies <- ratingRepository.findRatings(userId)
       highRatedMovies <- ratingRepository.findHighRatedMoviesByUserId(userId)
       categories <- getCategoriesForMovies(highRatedMovies.map(_.movieId))
       categoryCounts = countMoviesByCategory(categories)
-      recommendedMovies <- getRecommendedMoviesByCategory(categoryCounts, highRatedMovies.map(_.movieId))
-      finalMovies <- ensureMinimumMovies(recommendedMovies, highRatedMovies.map(_.movieId), 10)
+      recommendedMovies <- getRecommendedMoviesByCategory(categoryCounts, ratedMovies.map(_.movieId))
+      finalMovies <- ensureMinimumMovies(recommendedMovies, ratedMovies.map(_.movieId), 10)
     } yield finalMovies
   }
 
@@ -51,10 +52,9 @@ class MovieService @Inject()(movieRepository: MovieRepository, ratingRepository:
   private def getRecommendedMoviesByCategory(categoryCounts: Map[String, Int], ratedMovieIds: Seq[Int]): Future[Seq[Movie]] = {
     val totalRatings = ratedMovieIds.size
     val recommendedMoviesFutures = Future.sequence {
-      categoryCounts.toSeq.flatMap { case (category, count) =>
+      categoryCounts.toSeq.map { case (category, count) =>
         val numMoviesToSelect = ((count.toDouble / totalRatings) * 10).toInt
-        val futureMovies = movieRepository.findMoviesByCategory(category, numMoviesToSelect, ratedMovieIds)
-        Seq(futureMovies)
+        movieRepository.findMoviesByCategory(category, numMoviesToSelect, ratedMovieIds)
       }
     }
     recommendedMoviesFutures.map(_.flatten)
