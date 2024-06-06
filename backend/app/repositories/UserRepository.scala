@@ -38,12 +38,9 @@ class UserRepository @Inject()(implicit ec: ExecutionContext) {
   }
 
   def createUser(firstName: String, lastName: String, login: String, password: String): Future[Unit] = {
-    val query = users.map(u => (u.firstName, u.lastName, u.login, u.password))
-      .returning(users.map(_.userId))
-      .into((userData, userId) => User(userId, userData._1, userData._2, userData._3, userData._4))
-      .+=(firstName, lastName, login, password)
-
+    val query = users.map(u => (u.firstName, u.lastName, u.login, u.password)) += (firstName, lastName, login, password)
     db.run(query).map(_ => ())
   }
+
 
 }
